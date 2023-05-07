@@ -1,5 +1,6 @@
 ﻿using AronWebAPI.DTOs;
 using AronWebAPI.Entites;
+using AtonWebAPI.DTOs;
 using AutoMapper;
 
 namespace AronWebAPI.Hellpers
@@ -12,13 +13,17 @@ namespace AronWebAPI.Hellpers
                 .ForMember(dst => dst.CreatedOn, opt => opt.MapFrom(
                     src => DateTime.UtcNow))
                 .ForMember(dst => dst.CreatedBy, opt => opt.MapFrom(
-                    src => "fsfdf"));
+                    src => "fsfdf"))
+                .ForMember(dst => dst.UserName, opt => opt.MapFrom(
+                    src => src.Login));
+
+            CreateMap<User, UserResponseForAdmin>();
+
+            CreateMap<User, UserResponseForUser>()
+                 .ForMember(dst => dst.Token, opt => opt.MapFrom(
+                    src => String.Empty));
 
 
-            CreateMap<User, UserResponseDTO>()
-               .ForMember(dst => dst.Active, opt => opt.MapFrom(
-                   src => src.RevokedOn == null));
-               
         }
     }
 }

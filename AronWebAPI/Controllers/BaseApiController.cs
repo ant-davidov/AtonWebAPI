@@ -1,10 +1,15 @@
 ﻿using AronWebAPI.Data;
 using AronWebAPI.DTOs;
+using AronWebAPI.Entites;
 using AronWebAPI.Hellpers.Filters;
+using AtonWebAPI.DTOs;
+using AtonWebAPI.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Principal;
 
 namespace AronWebAPI.Controllers
 {
@@ -14,43 +19,47 @@ namespace AronWebAPI.Controllers
     [ApiController]
     public class BaseApiController : ControllerBase
     {
-        protected readonly DataContext _dataContext;
-        public BaseApiController(DataContext dataContext)
+        protected readonly UserManager<User> _userManager;
+
+        public BaseApiController(UserManager<User> userManager)
         {
-            _dataContext = dataContext;
+            _userManager = userManager;
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async void Update(UserUpdateDTO updateUser)
+        public async Task<ActionResult> Update(UserUpdateDTO updateUser)
         {
-            var user = _dataContext.Users.FirstOrDefault(x => x.Login == updateUser.Login);
-            if (user == null) return;
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == updateUser.Login);
+            if (user == null) return NotFound("User not found");
             user.Name = updateUser.Name;
+            user.UserName = updateUser.Name;
             user.Gender = user.Gender;
             user.Birthday = updateUser.Birthday;
-            _dataContext.Entry(user).State = EntityState.Modified;
-            await _dataContext.SaveChangesAsync();
+            if ((await _userManager.UpdateAsync(user)).Succeeded)
+                return Ok();
+            return BadRequest();
+            
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async void ChangeLogin(string login, string newLogin)
+        public async Task<ActionResult> ChangeLogin(UpdateLoginDTO userDTO)
         {
-            var user = _dataContext.Users.FirstOrDefault(x => x.Login == login);
-            if (user == null) return;
-            if (await _dataContext.Users.AnyAsync(x => x.Login == newLogin)) return;
-            user.Login = newLogin;
-            _dataContext.Entry(user).State = EntityState.Modified;
-            await _dataContext.SaveChangesAsync();
+            var user = _userManager.Users.FirstOrDefault(x => x.Login == userDTO.OldLogin);
+            if (user == null)  return NotFound("User not found");
+            if (await _userManager.Users.AnyAsync(x => x.Login == userDTO.NewLogin)) return BadRequest("Login is busy"); ;
+            user.Login = userDTO.NewLogin;
+            if ((await _userManager.UpdateAsync(user)).Succeeded)
+                return Ok();
+            return BadRequest();
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async void ChangePassword(string login, string newPassword)
+        public async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
         {
-            var user = _dataContext.Users.FirstOrDefault(x => x.Login == login);
-            if (user == null) return;
-            user.Password = newPassword;
-            _dataContext.Entry(user).State = EntityState.Modified;
-            await _dataContext.SaveChangesAsync();
+            var user = _userManager.Users.FirstOrDefault(x => x.Login == userDTO.Login);
+            if (user == null) return NotFound("User not found");
+            await _userManager.ChangePasswordAsync(user, userDTO.OldPassword, userDTO.NewPassword);     
+            return Ok();
         }
     }
 }

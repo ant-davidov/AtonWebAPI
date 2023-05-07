@@ -1,11 +1,18 @@
-﻿namespace AronWebAPI.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AronWebAPI.DTOs
 {
     public class UserRegistrationDTO
     {
-        string Login { get; set; }
-        string Password { get; set; }
-        string Name { get; set; }
-        ushort Gender { get; set; }
-        DateTime? Birthday { get; set; }
+        [Required(AllowEmptyStrings = false)]
+        public string Login { get; set; }
+        [Required(AllowEmptyStrings = false)]
+        public string Password { get; set; }
+        [Required(AllowEmptyStrings = false)]
+        public string Name { get; set; }
+        [Range(0, 2)]
+        public ushort Gender { get; set; }
+        public DateTime? Birthday { get; set; }
+        public bool IsAdmin { get; set; } 
     }
 }

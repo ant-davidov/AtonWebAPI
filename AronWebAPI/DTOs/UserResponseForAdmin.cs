@@ -1,14 +1,8 @@
-﻿using AtonWebAPI.Entites;
-using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
-
-namespace AronWebAPI.Entites
+﻿namespace AtonWebAPI.DTOs
 {
-    public class User : IdentityUser<Guid>
-    {
-        [Key]
-        public Guid Guid { get; set; }
-        public string? Login { get; set; }
+    public class UserResponseForAdmin
+    {     
+        public string Login { get; set; }
         public string Name { get; set; }
         public ushort Gender { get; set; }
         public DateTime Birthday { get; set; }
@@ -19,6 +13,5 @@ namespace AronWebAPI.Entites
         public string? ModifiedBy { get; set; }
         public DateTime? RevokedOn { get; set; }
         public string? RevokedBy { get; set; }
-        public virtual ICollection<ApplicationUserRole> UserRoles { get; set; }
     }
 }
