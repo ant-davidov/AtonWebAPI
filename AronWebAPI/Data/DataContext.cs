@@ -12,6 +12,7 @@ namespace AronWebAPI.Data
     ApplicationUserRole, IdentityUserLogin<Guid>, IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>
     {
         public DbSet<User> AppUser => Set<User>();
+        public DbSet<ActiveToken> Tokens => Set<ActiveToken>();
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
             Database.EnsureCreated();

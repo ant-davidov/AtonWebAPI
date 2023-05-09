@@ -3,6 +3,7 @@ using AronWebAPI.Entites;
 using AronWebAPI.Hellpers;
 using AtonWebAPI.Data;
 using AtonWebAPI.Entites;
+using AtonWebAPI.Hellpers.Middleware;
 using AtonWebAPI.Interfaces;
 using AtonWebAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -62,10 +63,6 @@ builder.Services.AddControllers().AddJsonOptions(opt =>
     opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
-
-
 builder.Services.AddIdentity<User, ApplicationRole>(options =>
 {
     options.Password.RequireDigit = false;
@@ -97,6 +94,10 @@ builder.Services.AddAuthentication(options =>
            };
        });
 builder.Services.AddScoped<SeedUsers>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
+builder.Services.AddMemoryCache();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -116,4 +117,6 @@ app.MapControllers();
 var scope = app.Services.CreateScope();
 var dbInitializer = scope.ServiceProvider.GetRequiredService<SeedUsers>();
 dbInitializer.Initialize();
+
+app.UseMiddleware<TokenMiddleware>();
 app.Run();

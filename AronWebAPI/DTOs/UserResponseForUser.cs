@@ -8,6 +8,7 @@
         public DateTime Birthday { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime? ModifiedOn { get; set; }
+        public string ModifiedBy { get; set; }
         public string Token { get; set; }
     }
 }

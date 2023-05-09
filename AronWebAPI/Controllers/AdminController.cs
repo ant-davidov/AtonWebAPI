@@ -13,40 +13,39 @@ using Microsoft.AspNetCore.Identity;
 using System.Security.Principal;
 using System.Data;
 using System.Security.Claims;
+using AtonWebAPI.Data;
 
 namespace AronWebAPI.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class AdminController : BaseApiController
     {
-        private readonly IMapper _mapper;
-        public AdminController(UserManager<User> userManager, IMapper mapper) : base(userManager)
-        {
-            _mapper = mapper;
-        }
+     
+        public AdminController(IUserRepository userRepository, IMapper mapper, ITokenService tokenService) : base(userRepository, mapper, tokenService) { }
+       
 
         [HttpPost("[action]")]
         public async Task<ActionResult<UserResponseForAdmin>> CreateUser(UserRegistrationDTO userDTO)
         {
-            if (await _userManager.Users.AnyAsync(x => x.Login == userDTO.Login)) return BadRequest("Login is busy");
+            if (await _userRepository.LoginIsFree(userDTO.Login)) return BadRequest("Login is busy");
             var user = _mapper.Map<User>(userDTO);
-            user.CreatedBy = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+            user.CreatedBy = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? "";
             user.CreatedOn = DateTime.UtcNow;
-            if (!(await _userManager.CreateAsync(user, userDTO.Password)).Succeeded)  return BadRequest();
-            if(userDTO.IsAdmin)  await _userManager.AddToRoleAsync(user, "Admin");
+            if (!await _userRepository.Add(user,userDTO.Password))  return BadRequest("Creation error");
+            if(userDTO.IsAdmin)  await _userRepository.AddRole(user, "Admin");
             var response = _mapper.Map<UserResponseForAdmin>(user);
             return response;
         }
         [HttpGet("[action]")]
         public async Task<ActionResult<List<UserResponseForAdmin>>> AllActiveUsers()
         {
-            var userList = await _userManager.Users.ToListAsync();
+            var userList = await _userRepository.GetAllActiveUsers();
             return _mapper.Map<List<UserResponseForAdmin>>(userList);
         }
         [HttpGet("{login}")]
         public async Task<ActionResult<UserResponseForAdmin>> GetUserByLogin(string login)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == login);
+            var user = await _userRepository.GetByLogin(login);
             if (user == null) return NotFound("User not found");
             return _mapper.Map<UserResponseForAdmin>(user);
         }
@@ -54,19 +53,46 @@ namespace AronWebAPI.Controllers
         [HttpGet("users/{age}")]
         public async Task<ActionResult<List<UserResponseForAdmin>>> GetUserByAge(int age)
         {
-            var userList = await _userManager.Users.Where(x => x.Birthday.AddYears(age) >= DateTime.Today).ToListAsync();
+            var userList = await _userRepository.GetUserByAge(age);
             if (userList == null || userList.Count < 1) return NotFound("There are no such users");
             return _mapper.Map<List<UserResponseForAdmin>>(userList);
         }
 
         [HttpDelete("{login}")]
-        public async void DeleteUser(string login)
+        public async Task<ActionResult> DeleteUser(string login)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == login);
-            if (user == null) return;
-            user.RevokedOn = DateTime.Now;
-            user.RevokedBy = HttpContext.User.Identity?.Name;
+            var user = await _userRepository.GetByLogin(login);
+            if (user == null) return NotFound("User not found");
+            if( await _userRepository.Delete(user, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value)) return Ok();
+            return BadRequest();
         }
+        [HttpPut("[action]/{login}")]
+        public async Task<ActionResult> Recovery(string login)
+        {
+            var user = await _userRepository.GetByLogin(login);
+            if (user == null) return NotFound("User not found");
+            if(await _userRepository.Recovery(user)) return Ok();
+            return BadRequest();
+        }
+
+        [HttpPut("[action]")]
+        public new async Task<ActionResult> Update(UserUpdateDTO updateUser)
+        {
+          return await base.Update(updateUser);
+        }
+
+        [HttpPut("[action]")]
+        public new async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
+        {
+            return await base.ChangePassword(userDTO);
+        }
+
+        [HttpPut("[action]")]
+        public new async Task<ActionResult<UserResponseForUser>> ChangeLogin(UpdateLoginDTO userDTO)
+        {
+            return await base.ChangeLogin(userDTO);
+        }
+       
 
     }
 

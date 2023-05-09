@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AtonWebAPI.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20230507112821_New")]
+    [Migration("20230509160609_New")]
     partial class New
     {
         /// <inheritdoc />
@@ -40,7 +40,6 @@ namespace AtonWebAPI.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedBy")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedOn")
@@ -75,7 +74,6 @@ namespace AtonWebAPI.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NormalizedEmail")
@@ -121,6 +119,22 @@ namespace AtonWebAPI.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("AtonWebAPI.Entites.ActiveToken", b =>
+                {
+                    b.Property<string>("Token")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Token");
+
+                    b.ToTable("Tokens");
                 });
 
             modelBuilder.Entity("AtonWebAPI.Entites.ApplicationRole", b =>

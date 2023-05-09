@@ -17,7 +17,9 @@ namespace AronWebAPI.Hellpers
                 .ForMember(dst => dst.UserName, opt => opt.MapFrom(
                     src => src.Login));
 
-            CreateMap<User, UserResponseForAdmin>();
+            CreateMap<User, UserResponseForAdmin>()
+                  .ForMember(dst => dst.IsActive, opt => opt.MapFrom(
+                    src => src.RevokedBy == null));
 
             CreateMap<User, UserResponseForUser>()
                  .ForMember(dst => dst.Token, opt => opt.MapFrom(

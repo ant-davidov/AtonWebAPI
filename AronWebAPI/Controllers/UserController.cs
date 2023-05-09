@@ -1,6 +1,7 @@
 ﻿using AronWebAPI.Data;
 using AronWebAPI.DTOs;
 using AronWebAPI.Entites;
+using AtonWebAPI.Data;
 using AtonWebAPI.DTOs;
 using AtonWebAPI.Interfaces;
 using AutoMapper;
@@ -13,16 +14,11 @@ using Microsoft.EntityFrameworkCore;
 namespace AronWebAPI.Controllers
 {
     public class UserController : BaseApiController
-    {
-        private readonly ITokenService _tokenService;
-        private readonly IMapper _mapper;
-        public UserController(UserManager<User> userManager, ITokenService tokenService, IMapper mapper) : base(userManager)
-        {
-            _tokenService = tokenService;
-            _mapper = mapper;  
-        }
+    {     
+        public UserController(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : base(userRepository, mapper, tokenService) { }
+       
 
-        [HttpGet("[action]")]
+        [HttpPut("[action]")]
         public new async Task<ActionResult> Update([FromBody]UserUpdateDTO userUpdate)
         {
             var resultVerification = await UserVerification(userUpdate.Login);
@@ -38,7 +34,7 @@ namespace AronWebAPI.Controllers
             return await base.ChangePassword(userDTO);
         }
         [HttpPut("[action]")]
-        public new async Task<ActionResult> ChangeLogin(UpdateLoginDTO userDTO)
+        public new async Task<ActionResult<UserResponseForUser>> ChangeLogin(UpdateLoginDTO userDTO)
         {
             var resultVerification = await UserVerification(userDTO.OldLogin);
             if (!resultVerification.isSuccessful) return resultVerification.actionResult;
@@ -47,15 +43,10 @@ namespace AronWebAPI.Controllers
         [HttpPost("[action]")]
         [AllowAnonymous]
         public async Task<ActionResult<UserResponseForUser>> Authentication(UserRequest userDTO)
-        {    
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == userDTO.Login);
-            if (user == null) 
-                return NotFound("User not found");
-            if(!await _userManager.CheckPasswordAsync(user, userDTO.Password))
-                return NotFound("User not found");
-            if (user.RevokedBy != null) 
-                return BadRequest("User is blocked");
-
+        {
+            var user = await _userRepository.GetByLoginAndPassword(userDTO.Login, userDTO.Password);
+            if (null == user) return NotFound("User not found");
+            if (user.RevokedBy != null) return BadRequest("User is blocked");
             var token = _tokenService.CreateToken(user);
             var response = _mapper.Map<UserResponseForUser>(user);
             response.Token = await token;
@@ -63,7 +54,9 @@ namespace AronWebAPI.Controllers
         }
         private async Task<(bool isSuccessful, ActionResult actionResult)> UserVerification(string login)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == login);
+            if(User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == login && !String.IsNullOrEmpty(login))
+                return (false,BadRequest ("Invalid user data"));
+            var user = await _userRepository.GetByLogin(login);
             if (user == null) return(false, NotFound("User not found"));
             if (user.RevokedBy != null) return (false, BadRequest("User is blocked"));
             return (true, Ok());

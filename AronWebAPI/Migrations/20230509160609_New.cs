@@ -32,12 +32,12 @@ namespace AtonWebAPI.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Guid = table.Column<Guid>(type: "TEXT", nullable: false),
                     Login = table.Column<string>(type: "TEXT", nullable: true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
                     Gender = table.Column<ushort>(type: "INTEGER", nullable: false),
                     Birthday = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Admin = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedOn = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedBy = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
                     ModifiedOn = table.Column<DateTime>(type: "TEXT", nullable: true),
                     ModifiedBy = table.Column<string>(type: "TEXT", nullable: true),
                     RevokedOn = table.Column<DateTime>(type: "TEXT", nullable: true),
@@ -60,6 +60,19 @@ namespace AtonWebAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Tokens",
+                columns: table => new
+                {
+                    Token = table.Column<string>(type: "TEXT", nullable: false),
+                    UserName = table.Column<string>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tokens", x => x.Token);
                 });
 
             migrationBuilder.CreateTable(
@@ -223,6 +236,9 @@ namespace AtonWebAPI.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "Tokens");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

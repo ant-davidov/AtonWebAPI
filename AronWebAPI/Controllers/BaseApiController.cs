@@ -4,12 +4,17 @@ using AronWebAPI.Entites;
 using AronWebAPI.Hellpers.Filters;
 using AtonWebAPI.DTOs;
 using AtonWebAPI.Interfaces;
+using AtonWebAPI.Services;
+using AutoMapper;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Principal;
+using AtonWebAPI.Data;
 
 namespace AronWebAPI.Controllers
 {
@@ -19,47 +24,51 @@ namespace AronWebAPI.Controllers
     [ApiController]
     public class BaseApiController : ControllerBase
     {
-        protected readonly UserManager<User> _userManager;
+        protected readonly IUserRepository _userRepository;
+        protected readonly IMapper _mapper;
+        protected readonly ITokenService _tokenService;
 
-        public BaseApiController(UserManager<User> userManager)
+        public BaseApiController(IUserRepository userRepository, IMapper mapper, ITokenService tokenService)
         {
-            _userManager = userManager;
+            _userRepository = userRepository;
+            _mapper = mapper;
+            _tokenService = tokenService;
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> Update(UserUpdateDTO updateUser)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Login == updateUser.Login);
+            var user = await _userRepository.GetByLogin(updateUser.Login);
             if (user == null) return NotFound("User not found");
-            user.Name = updateUser.Name;
-            user.UserName = updateUser.Name;
-            user.Gender = user.Gender;
-            user.Birthday = updateUser.Birthday;
-            if ((await _userManager.UpdateAsync(user)).Succeeded)
-                return Ok();
+            if(await _userRepository.Update(user,updateUser)) return Ok();
             return BadRequest();
-            
+
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<ActionResult> ChangeLogin(UpdateLoginDTO userDTO)
+        public async Task<ActionResult<UserResponseForUser>> ChangeLogin(UpdateLoginDTO userDTO)
         {
-            var user = _userManager.Users.FirstOrDefault(x => x.Login == userDTO.OldLogin);
-            if (user == null)  return NotFound("User not found");
-            if (await _userManager.Users.AnyAsync(x => x.Login == userDTO.NewLogin)) return BadRequest("Login is busy"); ;
-            user.Login = userDTO.NewLogin;
-            if ((await _userManager.UpdateAsync(user)).Succeeded)
-                return Ok();
-            return BadRequest();
+            var user = await _userRepository.GetByLogin(userDTO.OldLogin);
+            if (user == null) return NotFound("User not found");
+            if (await _userRepository.LoginIsFree(userDTO.NewLogin)) return BadRequest("Login is busy"); ;
+           
+            if (await _userRepository.UpdateLogin(user, userDTO.NewLogin))
+            {
+                var response = _mapper.Map<UserResponseForUser>(user);
+                if (User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == userDTO.OldLogin)  
+                    response.Token = await _tokenService.CreateToken(user);                        
+                return Ok(response);
+            }
+            return BadRequest("Update error");
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
         {
-            var user = _userManager.Users.FirstOrDefault(x => x.Login == userDTO.Login);
+            var user = await _userRepository.GetByLogin(userDTO.Login);
             if (user == null) return NotFound("User not found");
-            await _userManager.ChangePasswordAsync(user, userDTO.OldPassword, userDTO.NewPassword);     
-            return Ok();
+            if(await _userRepository.UpdatePassword(user,userDTO.OldPassword,userDTO.NewPassword)) return Ok();
+            return BadRequest();
         }
     }
 }

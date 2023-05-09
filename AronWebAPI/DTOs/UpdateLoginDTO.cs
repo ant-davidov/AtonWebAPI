@@ -7,6 +7,7 @@ namespace AtonWebAPI.DTOs
         [Required(AllowEmptyStrings = false)]
         public string OldLogin { get; set; }
         [Required(AllowEmptyStrings = false)]
+        [RegularExpression(@"^[a-zA-Z0-9]*$")]
         public string NewLogin { get; set; }
     }
 }
