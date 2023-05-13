@@ -9,6 +9,8 @@
         public DateTime CreatedOn { get; set; }
         public string CreatedBy { get; set; }
         public bool IsActive { get; set; }
+        public DateTime? RevokedOn { get; set; }
+        public string RevokedBy { get; set; }
 
     }
 }
