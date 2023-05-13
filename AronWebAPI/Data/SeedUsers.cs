@@ -1,8 +1,6 @@
 ﻿using AronWebAPI.Entites;
 using AtonWebAPI.Entites;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Principal;
 
 namespace AtonWebAPI.Data
 {
@@ -17,11 +15,9 @@ namespace AtonWebAPI.Data
         }
         public async void Initialize()
         {
-
-
-            if ( _userManager.Users.FirstOrDefault(x=> x.Login == "admin") != null) return;
+            if (_userManager.Users.FirstOrDefault(x => x.Login == "admin") != null) return;
             var role = new ApplicationRole { Name = "Admin" };
-         
+
             await _roleManager.CreateAsync(role);
 
             var user = new User
@@ -37,7 +33,7 @@ namespace AtonWebAPI.Data
 
             var result = await _userManager.CreateAsync(user, "admin");
             await _userManager.AddToRoleAsync(user, "Admin");
-            
+
         }
     }
 }

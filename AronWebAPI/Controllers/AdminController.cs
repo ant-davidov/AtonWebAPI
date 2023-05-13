@@ -1,28 +1,18 @@
-﻿using AronWebAPI.Data;
-using AronWebAPI.DTOs;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
+﻿using AronWebAPI.DTOs;
 using AronWebAPI.Entites;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using Microsoft.AspNetCore.Authorization;
-using AtonWebAPI.Interfaces;
 using AtonWebAPI.DTOs;
-using Microsoft.AspNetCore.Identity;
-using System.Security.Principal;
-using System.Data;
-using System.Security.Claims;
-using AtonWebAPI.Data;
+using AtonWebAPI.Interfaces;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AronWebAPI.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class AdminController : BaseApiController
     {
-     
+
         public AdminController(IUserRepository userRepository, IMapper mapper, ITokenService tokenService) : base(userRepository, mapper, tokenService) { }
-       
 
         [HttpPost("[action]")]
         public async Task<ActionResult<UserResponseForAdmin>> CreateUser(UserRegistrationDTO userDTO)
@@ -31,10 +21,11 @@ namespace AronWebAPI.Controllers
             var user = _mapper.Map<User>(userDTO);
             user.CreatedBy = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? "";
             user.CreatedOn = DateTime.UtcNow;
-            if (!await _userRepository.Add(user,userDTO.Password))  return BadRequest("Creation error");
-            if(userDTO.IsAdmin)  await _userRepository.AddRole(user, "Admin");
+            if (!await _userRepository.Add(user, userDTO.Password)) return BadRequest("Creation error");
+            if (userDTO.IsAdmin) await _userRepository.AddRole(user, "Admin");
             var response = _mapper.Map<UserResponseForAdmin>(user);
-            return response;
+            var uri = Url.Action("GetUserByLogin", new { login = userDTO.Login });
+            return Created(uri, response);
         }
         [HttpGet("[action]")]
         public async Task<ActionResult<List<UserResponseForAdmin>>> AllActiveUsers()
@@ -63,7 +54,8 @@ namespace AronWebAPI.Controllers
         {
             var user = await _userRepository.GetByLogin(login);
             if (user == null) return NotFound("User not found");
-            if( await _userRepository.Delete(user, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value)) return Ok();
+            if (user.Admin) return BadRequest("Can not block the admin");
+            if (_userRepository.Delete(user, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value)) return Ok();
             return BadRequest();
         }
         [HttpPut("[action]/{login}")]
@@ -71,18 +63,18 @@ namespace AronWebAPI.Controllers
         {
             var user = await _userRepository.GetByLogin(login);
             if (user == null) return NotFound("User not found");
-            if(await _userRepository.Recovery(user)) return Ok();
+            if (await _userRepository.Recovery(user)) return Ok();
             return BadRequest();
         }
 
         [HttpPut("[action]")]
         public new async Task<ActionResult> Update(UserUpdateDTO updateUser)
         {
-          return await base.Update(updateUser);
+            return await base.Update(updateUser);
         }
 
         [HttpPut("[action]")]
-        public new async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
+        public new async Task<ActionResult<UserResponseForUser>> ChangePassword(UpdatePasswordDTO userDTO)
         {
             return await base.ChangePassword(userDTO);
         }
@@ -92,7 +84,7 @@ namespace AronWebAPI.Controllers
         {
             return await base.ChangeLogin(userDTO);
         }
-       
+
 
     }
 

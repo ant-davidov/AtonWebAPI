@@ -3,12 +3,10 @@ using AtonWebAPI.Entites;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using System.Security.Principal;
 
 namespace AronWebAPI.Data
 {
-    public class DataContext : IdentityDbContext<User, ApplicationRole,Guid, IdentityUserClaim<Guid>,
+    public class DataContext : IdentityDbContext<User, ApplicationRole, Guid, IdentityUserClaim<Guid>,
     ApplicationUserRole, IdentityUserLogin<Guid>, IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>
     {
         public DbSet<User> AppUser => Set<User>();

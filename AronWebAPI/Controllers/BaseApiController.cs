@@ -1,20 +1,10 @@
-﻿using AronWebAPI.Data;
-using AronWebAPI.DTOs;
-using AronWebAPI.Entites;
+﻿using AronWebAPI.DTOs;
 using AronWebAPI.Hellpers.Filters;
 using AtonWebAPI.DTOs;
 using AtonWebAPI.Interfaces;
-using AtonWebAPI.Services;
 using AutoMapper;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Principal;
-using AtonWebAPI.Data;
 
 namespace AronWebAPI.Controllers
 {
@@ -40,8 +30,8 @@ namespace AronWebAPI.Controllers
         {
             var user = await _userRepository.GetByLogin(updateUser.Login);
             if (user == null) return NotFound("User not found");
-            if(await _userRepository.Update(user,updateUser)) return Ok();
-            return BadRequest();
+            if (await _userRepository.Update(user, updateUser, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value)) return Ok();
+            return BadRequest("Update error");
 
         }
 
@@ -51,24 +41,30 @@ namespace AronWebAPI.Controllers
             var user = await _userRepository.GetByLogin(userDTO.OldLogin);
             if (user == null) return NotFound("User not found");
             if (await _userRepository.LoginIsFree(userDTO.NewLogin)) return BadRequest("Login is busy"); ;
-           
-            if (await _userRepository.UpdateLogin(user, userDTO.NewLogin))
+
+            if (await _userRepository.UpdateLogin(user, userDTO.NewLogin, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value))
             {
                 var response = _mapper.Map<UserResponseForUser>(user);
-                if (User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == userDTO.OldLogin)  
-                    response.Token = await _tokenService.CreateToken(user);                        
+                if (User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == userDTO.OldLogin)
+                    response.Token = await _tokenService.CreateToken(user);
                 return Ok(response);
             }
             return BadRequest("Update error");
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
+        public async Task<ActionResult<UserResponseForUser>> ChangePassword(UpdatePasswordDTO userDTO)
         {
             var user = await _userRepository.GetByLogin(userDTO.Login);
             if (user == null) return NotFound("User not found");
-            if(await _userRepository.UpdatePassword(user,userDTO.OldPassword,userDTO.NewPassword)) return Ok();
-            return BadRequest();
+            if (await _userRepository.UpdatePassword(user, userDTO.OldPassword, userDTO.NewPassword, User.Claims.FirstOrDefault(c => c.Type == "name")?.Value))
+            {
+                var response = _mapper.Map<UserResponseForUser>(user);
+                if (User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == userDTO.Login)
+                    response.Token = await _tokenService.CreateToken(user);
+                return response;
+            }
+            return BadRequest("Error Update Password");
         }
     }
 }

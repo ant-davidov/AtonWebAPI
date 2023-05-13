@@ -15,11 +15,9 @@ namespace AronWebAPI.DTOs
         [Required(AllowEmptyStrings = false)]
         [RegularExpression(@"^[a-zA-Zа-яА-Я]*$")]
         public string Name { get; set; }
-
         [Range(0, 2)]
         public ushort Gender { get; set; }
-
-        public DateTime? Birthday { get; set; }
-        public bool IsAdmin { get; set; } 
+        public DateTime? Birthday { get; set; } = null;
+        public bool IsAdmin { get; set; }
     }
 }

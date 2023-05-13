@@ -8,6 +8,6 @@ namespace AtonWebAPI.Entites
         public string Token { get; set; }
         public string UserName { get; set; }
         public bool IsActive { get; set; }
-        
+
     }
 }

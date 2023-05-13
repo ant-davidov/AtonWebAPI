@@ -1,6 +1,5 @@
 ﻿using AronWebAPI.Entites;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Principal;
 using System.Text.Json.Serialization;
 
 namespace AtonWebAPI.Entites

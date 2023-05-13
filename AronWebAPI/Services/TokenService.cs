@@ -5,7 +5,6 @@ using AtonWebAPI.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -29,13 +28,10 @@ namespace AtonWebAPI.Services
         }
         public async Task<string> CreateToken(User user)
         {
-            if (_cache.TryGetValue(user.Login, out String stringToken))
-            {
-                return stringToken;
-            }
+
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.NameId, user.Guid.ToString()),
+                new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Name, user.Login),
             };
             var roles = await _userManager.GetRolesAsync(user);
@@ -50,24 +46,33 @@ namespace AtonWebAPI.Services
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokesnAsString = tokenHandler.WriteToken(token);
-            var tokenToDb = new ActiveToken()
-            {
-                Token = tokesnAsString,
-                UserName = user.Login,
-                IsActive = true,
-            };
-            _context.Tokens.Add(tokenToDb);
-            _context.SaveChanges();
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(15));
-            _cache.Set(user.Login, tokesnAsString, cacheEntryOptions);
+            SaveToDb(tokesnAsString, user.UserName);
             return tokesnAsString;
         }
         public void RevokeToken(string login)
         {
-            _context.RemoveRange(_context.Tokens.Where(x=>x.UserName == login).ToList());
+            var listTokens = _context.Tokens.Where(x => x.UserName == login).ToList();
+            foreach (var token in listTokens)
+            {
+                _cache.Remove(token.Token);
+            }
+            _context.RemoveRange(listTokens);
             _context.SaveChanges();
-            _cache.Remove(login);
         }
+
+        private void SaveToDb(string token, string username)
+        {
+            var tokenToDb = new ActiveToken()
+            {
+                Token = token,
+                UserName = username,
+                IsActive = true,
+            };
+            _context.Tokens.Add(tokenToDb);
+            _context.SaveChanges();
+        }
+
+
+
     }
 }

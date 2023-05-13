@@ -1,33 +1,34 @@
-﻿using AronWebAPI.Data;
-using AronWebAPI.DTOs;
-using AronWebAPI.Entites;
-using AtonWebAPI.Data;
+﻿using AronWebAPI.DTOs;
 using AtonWebAPI.DTOs;
 using AtonWebAPI.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AronWebAPI.Controllers
 {
     public class UserController : BaseApiController
-    {     
+    {
         public UserController(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : base(userRepository, mapper, tokenService) { }
-       
+
 
         [HttpPut("[action]")]
-        public new async Task<ActionResult> Update([FromBody]UserUpdateDTO userUpdate)
+        public new async Task<ActionResult> Update([FromBody] UserUpdateDTO userUpdate)
         {
             var resultVerification = await UserVerification(userUpdate.Login);
             if (!resultVerification.isSuccessful) return resultVerification.actionResult;
             return await base.Update(userUpdate);
 
         }
+        [HttpGet("[action]")]
+        public async Task<ActionResult<UserResponseForUser>> MyAccount()
+        {
+            var login = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+            if (login == null) return BadRequest("Error");
+            return _mapper.Map<UserResponseForUser>(await _userRepository.GetByLogin(login));
+        }
         [HttpPut("[action]")]
-        public new async Task<ActionResult> ChangePassword(UpdatePasswordDTO userDTO)
+        public new async Task<ActionResult<UserResponseForUser>> ChangePassword(UpdatePasswordDTO userDTO)
         {
             var resultVerification = await UserVerification(userDTO.Login);
             if (!resultVerification.isSuccessful) return resultVerification.actionResult;
@@ -54,10 +55,11 @@ namespace AronWebAPI.Controllers
         }
         private async Task<(bool isSuccessful, ActionResult actionResult)> UserVerification(string login)
         {
-            if(User.Claims.FirstOrDefault(c => c.Type == "name")?.Value == login && !String.IsNullOrEmpty(login))
-                return (false,BadRequest ("Invalid user data"));
+            var authorizationLogin = User.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
+            if (authorizationLogin != login || String.IsNullOrEmpty(login))
+                return (false, BadRequest("Invalid user data"));
             var user = await _userRepository.GetByLogin(login);
-            if (user == null) return(false, NotFound("User not found"));
+            if (user == null) return (false, NotFound("User not found"));
             if (user.RevokedBy != null) return (false, BadRequest("User is blocked"));
             return (true, Ok());
         }
