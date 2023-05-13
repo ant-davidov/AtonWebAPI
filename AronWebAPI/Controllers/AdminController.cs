@@ -63,8 +63,9 @@ namespace AronWebAPI.Controllers
         {
             var user = await _userRepository.GetByLogin(login);
             if (user == null) return NotFound("User not found");
+            if (user.RevokedBy == null && user.RevokedOn == null) return BadRequest("Already unblocked");
             if (await _userRepository.Recovery(user)) return Ok();
-            return BadRequest();
+            return BadRequest("Error unblocked");
         }
 
         [HttpPut("[action]")]

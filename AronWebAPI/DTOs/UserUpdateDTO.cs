@@ -12,6 +12,6 @@ namespace AronWebAPI.DTOs
         public string Name { get; set; }
         [Range(0, 2)]
         public ushort Gender { get; set; }
-        public DateTime Birthday { get; set; }
+        public DateTime? Birthday { get; set; }
     }
 }

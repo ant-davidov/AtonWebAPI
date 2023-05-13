@@ -113,6 +113,6 @@ app.MapControllers();
 var scope = app.Services.CreateScope();
 var dbInitializer = scope.ServiceProvider.GetRequiredService<SeedUsers>();
 dbInitializer.Initialize();
-
 app.UseMiddleware<TokenMiddleware>();
+
 app.Run();
